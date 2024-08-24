@@ -30,14 +30,15 @@ proto_library(
     ],
 )
 
-# rust_library_group(
-#     name = "simple_rs",
-#     deps = [
-#         ":message_rs",
-#     ],
-# )
-
-rust_prost_library(
+rust_library_group(
     name = "simple_rs",
-    proto = ":simple",
+    deps = [
+        ":message_rs",
+    ],
 )
+
+# NOTE: this does not compile: https://github.com/bazelbuild/rules_rust/issues/2808
+# rust_prost_library(
+#     name = "simple_rs",
+#     proto = ":simple",
+# )
