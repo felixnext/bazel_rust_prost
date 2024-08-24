@@ -1,0 +1,51 @@
+# compile proto libraries to python
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_rust//rust:defs.bzl", "rust_library_group")
+# load("@rules_rust//proto/protobuf:defs.bzl", "rust_proto_library")
+load("@rules_rust//proto/prost:defs.bzl", "rust_prost_library")
+
+# set default visibility to public
+package(default_visibility = ["//visibility:public"])
+
+proto_library(
+    name = "types",
+    srcs = ["types.proto"],
+)
+
+rust_prost_library(
+    name = "types_rs",
+    proto = ":types",
+)
+
+proto_library(
+    name = "cmessage",
+    srcs = ["message.proto"],
+    deps = [
+        ":types",
+        # "//sample/proto/simple",
+        "//sample/proto/simple:message",
+        "@com_google_protobuf//:duration_proto",
+        "@com_google_protobuf//:timestamp_proto",
+    ],
+)
+
+rust_prost_library(
+    name = "cmessage_rs",
+    proto = ":cmessage",
+)
+
+proto_library(
+    name = "complex",
+    deps = [
+        ":types",
+        ":cmessage",
+    ],
+)
+
+rust_library_group(
+    name = "complex_rs",
+    deps = [
+        ":types_rs",
+        ":cmessage_rs",
+    ],
+)

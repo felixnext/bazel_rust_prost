@@ -1,0 +1,14 @@
+# Copyright © 2024 Radiant Science Inc. All rights reserved.
+
+
+load("@rules_license//rules:license.bzl", "license")
+
+license(
+    name = "license",
+    package_name = "flywheel/system",
+    copyright_notice = "Copyright © 2024 Radiant Science Inc. All rights reserved.",
+    license_kinds = [],
+    license_text = "LICENSE",
+)
+
+exports_files(["LICENSE"])

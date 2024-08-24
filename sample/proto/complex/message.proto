@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package sample.proto.complex;
+
+import "google/protobuf/timestamp.proto";
+import "sample/proto/simple/simple.proto";
+import "sample/proto/complex/types.proto";
+
+message ComplexMessage {
+  simple.SampleMessage sample = 1;
+  MessageType type = 2;
+  MessageStatus status = 3;
+  google.protobuf.Timestamp created = 4;
+}

@@ -1,0 +1,164 @@
+"""Module file for external dependencies and setup
+
+This is part of the BzlMod System.
+Copyright (c) 2024 Felix Geilert
+"""
+
+# --- DEFINITIONS ---
+
+module(
+    name = "rust",
+    version = "0.0.1",
+    compatibility_level = 1,
+    repo_name = "dump_rust_bazel",
+)
+
+
+
+bazel_dep(name = "rules_license", version = "0.0.8")
+bazel_dep(name = "bazel_skylib", version = "1.6.1")
+
+
+# load platforms
+bazel_dep(name = "platforms", version = "0.0.10")
+
+# --- LANG - PROTOBUF ---
+
+# https://github.com/bazelbuild/rules_proto/releases
+bazel_dep(name = "rules_proto", version = "6.0.2")
+proto_ver = "27.1"
+
+bazel_dep(name = "toolchains_protoc", version = "0.3.1")
+protoc = use_extension("@toolchains_protoc//protoc:extensions.bzl", "protoc")
+protoc.toolchain(
+    google_protobuf = "com_google_protobuf",
+    version = "v" + proto_ver,
+)
+
+# bazel_dep(name = "protobuf", version = proto_ver)
+
+use_repo(protoc, "com_google_protobuf", "toolchains_protoc_hub")
+register_toolchains("@toolchains_protoc_hub//:all")
+
+
+# --- LANG - RUST ---
+
+bazel_dep(name = "rules_rust", version = "0.48.0")
+
+# >>> LLVM Toolchain <<<
+# https://github.com/bazel-contrib/toolchains_llvm
+bazel_dep(name = "toolchains_llvm", version = "1.1.2")
+llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm")
+
+# LLVM Versions and platforms
+# https://github.com/bazel-contrib/toolchains_llvm/blob/master/toolchain/internal/llvm_distributions.bzl
+# NOTE: resolves to
+# https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang%2Bllvm-17.0.6-arm64-apple-darwin22.0.tar.xz
+LLVM_VERSIONS = {
+    # "": "17.0.6",
+    "": "16.0.0",
+    # NOTE: used to define platform specifics
+    "darwin-aarch64": "16.0.5",
+    # "darwin-x86_64": "16.0.7",
+}
+
+# Host LLVM toolchain.
+llvm.toolchain(
+    name = "llvm_toolchain",
+    llvm_versions = LLVM_VERSIONS,
+)
+
+# register the toolchain
+use_repo(llvm, "llvm_toolchain", "llvm_toolchain_llvm")
+register_toolchains("@llvm_toolchain//:all")
+
+# >>>>>>>
+
+# define the exact toolchain
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = "2021",  # NOTE: 2024 is released in 1.86.0
+    versions = [
+        "1.80.0",
+    ],
+    # extra_target_triples = [
+    #     "aarch64-unknown-linux-gnu",
+    #     "x86_64-unknown-linux-gnu",
+    # ],
+)
+
+# register all rust toolchains
+use_repo(rust, "rust_toolchains")
+register_toolchains("@rust_toolchains//:all")
+
+# Proto toolchain & Prost Toolchain
+# NOTE: this toolchain currently causes problems
+register_toolchains("@rules_rust//proto/protobuf:default-proto-toolchain")
+
+# NOTE: prost generates more idomatic rust code
+register_toolchains("@//toolchain:rust_prost")
+
+
+###############################################################################
+# R U S T  C R A T E S
+###############################################################################
+crate = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
+
+prost_ver = "0.13.1"
+tonic_ver = "0.12.1"
+
+# protobufs/gRPC in Rust
+crate.spec(
+    package = "prost",
+    version = prost_ver,
+)
+crate.spec(
+    default_features = False,
+    package = "prost-types",
+    version = prost_ver,
+)
+crate.spec(
+    features = ["transport"],
+    package = "tonic",
+    version = tonic_ver,
+)
+crate.spec(
+    package = "tonic-build",
+    version = tonic_ver,
+)
+crate.spec(
+    default_features = False,
+    features = ["transport"],
+    package = "tonic-health",
+    version = tonic_ver,
+)
+crate.spec(
+    package = "protoc-gen-prost",
+    version = "0.4.0",
+)
+crate.annotation(
+    crate = "protoc-gen-prost",
+    gen_binaries = ["protoc-gen-prost"],
+)
+crate.spec(
+    package = "protoc-gen-tonic",
+    version = "0.4.1",
+)
+crate.annotation(
+    crate = "protoc-gen-tonic",
+    gen_binaries = ["protoc-gen-tonic"],
+)
+
+# Other External Crates
+crate.spec(
+    package = "anyhow",
+    version = "1.0",
+)
+
+# Complete crate registration.
+crate.from_specs()
+
+# use any crate as dependency via "@crates//:name"
+# For example: "@crates//:anyhow"
+use_repo(crate, "crates")
+
